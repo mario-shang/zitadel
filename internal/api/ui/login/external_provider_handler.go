@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/crewjam/saml/samlsp"
 	"github.com/zitadel/logging"
@@ -237,6 +238,30 @@ func (l *Login) handleExternalLoginCallback(w http.ResponseWriter, r *http.Reque
 	}
 
 	userAgentID, _ := http_mw.UserAgentIDFromCtx(r.Context())
+	if data.State == "" {
+		// create temp request
+		ctx := r.Context()
+		var tempReq *domain.AuthRequest
+		tempReq, err = l.authRepo.CreateAuthRequest(ctx, &domain.AuthRequest{
+			CreationDate:        time.Now(),
+			AgentID:             userAgentID,
+			UserOrgID:           "262406827252121881",
+			ApplicationID:       "262406202082787609@dev",
+			SelectedIDPConfigID: "262407024115974425",
+			SAMLRequestID:       "dumb",
+			TransferState:       "state",
+			CallbackURI:         "http://localhost:3000/callback?org_id=262406827252121881",
+			Prompt:              []domain.Prompt{domain.PromptNone},
+			InstanceID:          authz.GetInstance(ctx).InstanceID(),
+			Request: &domain.AuthRequestOIDC{
+				Scopes:       []string{"openid", "email", "profile"},
+				ResponseType: domain.OIDCResponseTypeIDTokenToken,
+			},
+		})
+		if err == nil && tempReq != nil {
+			data.State = tempReq.ID
+		}
+	}
 	authReq, err := l.authRepo.AuthRequestByID(r.Context(), data.State, userAgentID)
 	if err != nil {
 		l.externalAuthFailed(w, r, authReq, nil, nil, err)
@@ -1037,6 +1062,7 @@ func (l *Login) samlProvider(ctx context.Context, identityProvider *query.IDPTem
 		opts = append(opts, saml.WithBinding(identityProvider.SAMLIDPTemplate.Binding))
 	}
 	opts = append(opts,
+		saml.WithIDPInitiatedAllowed(),
 		saml.WithEntityID(http_utils.BuildOrigin(authz.GetInstance(ctx).RequestedHost(), l.externalSecure)+"/idps/"+identityProvider.ID+"/saml/metadata"),
 		saml.WithCustomRequestTracker(
 			requesttracker.New(

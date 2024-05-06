@@ -71,6 +71,12 @@ func WithSignedRequest() ProviderOpts {
 	}
 }
 
+func WithIDPInitiatedAllowed() ProviderOpts {
+	return func(p *Provider) {
+		p.spOptions.AllowIDPInitiated = true
+	}
+}
+
 func WithBinding(binding string) ProviderOpts {
 	return func(p *Provider) {
 		p.binding = binding
