@@ -245,12 +245,12 @@ func (l *Login) handleExternalLoginCallback(w http.ResponseWriter, r *http.Reque
 		tempReq, err = l.authRepo.CreateAuthRequest(ctx, &domain.AuthRequest{
 			CreationDate:        time.Now(),
 			AgentID:             userAgentID,
-			UserOrgID:           "262406827252121881",
-			ApplicationID:       "262406202082787609@dev",
-			SelectedIDPConfigID: "262407024115974425",
+			UserOrgID:           "266054080311329795",
+			ApplicationID:       "266053172445905923@demo",
+			SelectedIDPConfigID: "266054227497845763",
 			SAMLRequestID:       "dumb",
 			TransferState:       "state",
-			CallbackURI:         "http://localhost:3000/callback?org_id=262406827252121881",
+			CallbackURI:         "https://webportal-sso-demo.vivalink.com/callback?org_id=266054080311329795",
 			Prompt:              []domain.Prompt{domain.PromptNone},
 			InstanceID:          authz.GetInstance(ctx).InstanceID(),
 			Request: &domain.AuthRequestOIDC{
