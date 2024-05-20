@@ -1,4 +1,4 @@
-FROM --platform=$TARGETPLATFORM debian:latest as artifact
+FROM --platform=linux/amd64 debian:latest as artifact
 ENV ZITADEL_ARGS=
 ARG TARGETPLATFORM
 
@@ -43,7 +43,7 @@ ENV PATH="/app:${PATH}"
 USER zitadel
 ENTRYPOINT ["/app/entrypoint.sh"]
 
-FROM --platform=$TARGETPLATFORM scratch as final
+FROM --platform=linux/amd64 scratch as final
 ARG TARGETPLATFORM
 
 COPY --from=artifact /etc/passwd /etc/passwd
