@@ -2,7 +2,9 @@ package login
 
 import (
 	"context"
+	"errors"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -238,28 +240,48 @@ func (l *Login) handleExternalLoginCallback(w http.ResponseWriter, r *http.Reque
 	}
 
 	userAgentID, _ := http_mw.UserAgentIDFromCtx(r.Context())
-	if data.State == "" {
-		// create temp request
-		ctx := r.Context()
-		var tempReq *domain.AuthRequest
-		tempReq, err = l.authRepo.CreateAuthRequest(ctx, &domain.AuthRequest{
-			CreationDate:        time.Now(),
-			AgentID:             userAgentID,
-			UserOrgID:           "266054080311329795",
-			ApplicationID:       "266053172445905923@demo",
-			SelectedIDPConfigID: "266054227497845763",
-			SAMLRequestID:       "dumb",
-			TransferState:       "state",
-			CallbackURI:         "https://webportal-sso-demo.vivalink.com/callback?org_id=266054080311329795",
-			Prompt:              []domain.Prompt{domain.PromptNone},
-			InstanceID:          authz.GetInstance(ctx).InstanceID(),
-			Request: &domain.AuthRequestOIDC{
-				Scopes:       []string{"openid", "email", "profile"},
-				ResponseType: domain.OIDCResponseTypeIDTokenToken,
-			},
-		})
-		if err == nil && tempReq != nil {
-			data.State = tempReq.ID
+	if data.RelayState != "" {
+		relayStateUrl, err := url.Parse(data.RelayState)
+		if err == nil && relayStateUrl.Scheme != "" {
+			// create temp request
+			values, err := url.ParseQuery(relayStateUrl.RawQuery)
+			IDPID := values.Get("idp_id")
+			AppId := values.Get("app_id")
+			if IDPID == "" || AppId == "" {
+				err = errors.New("The app and IDP should neither be empty.")
+				l.externalAuthFailed(w, r, nil, nil, nil, err)
+				return
+			}
+			identityProvider, err := l.getIDPByID(r, IDPID)
+			if err != nil {
+				l.externalAuthFailed(w, r, nil, nil, nil, err)
+				return
+			}
+			ctx := r.Context()
+			var tempReq *domain.AuthRequest
+			tempReq, err = l.authRepo.CreateAuthRequest(ctx, &domain.AuthRequest{
+				CreationDate:        time.Now(),
+				AgentID:             userAgentID,
+				UserOrgID:           identityProvider.ResourceOwner,
+				ApplicationID:       AppId,
+				SelectedIDPConfigID: identityProvider.ID,
+				RequestedOrgID:      identityProvider.ResourceOwner,
+				SAMLRequestID:       "dumb",
+				TransferState:       "state",
+				CallbackURI:         data.RelayState,
+				Prompt:              []domain.Prompt{domain.PromptNone},
+				InstanceID:          authz.GetInstance(ctx).InstanceID(),
+				Request: &domain.AuthRequestOIDC{
+					Scopes:       []string{"openid", "email", "profile"},
+					ResponseType: domain.OIDCResponseTypeIDTokenToken,
+				},
+			})
+			if err != nil {
+				l.externalAuthFailed(w, r, nil, nil, nil, err)
+				return
+			} else if tempReq != nil {
+				data.State = tempReq.ID
+			}
 		}
 	}
 	authReq, err := l.authRepo.AuthRequestByID(r.Context(), data.State, userAgentID)
