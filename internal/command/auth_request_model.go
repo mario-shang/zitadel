@@ -16,6 +16,7 @@ type AuthRequestWriteModel struct {
 	aggregate *eventstore.Aggregate
 
 	LoginClient      string
+	UserAgentID      string
 	ClientID         string
 	RedirectURI      string
 	State            string
@@ -50,6 +51,7 @@ func (m *AuthRequestWriteModel) Reduce() error {
 		switch e := event.(type) {
 		case *authrequest.AddedEvent:
 			m.LoginClient = e.LoginClient
+			m.UserAgentID = e.UserAgentID
 			m.ClientID = e.ClientID
 			m.RedirectURI = e.RedirectURI
 			m.State = e.State

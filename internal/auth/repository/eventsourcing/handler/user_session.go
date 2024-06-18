@@ -2,14 +2,17 @@ package handler
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	auth_view "github.com/zitadel/zitadel/internal/auth/repository/eventsourcing/view"
+	"github.com/zitadel/zitadel/internal/command"
 	"github.com/zitadel/zitadel/internal/domain"
 	"github.com/zitadel/zitadel/internal/eventstore"
 	"github.com/zitadel/zitadel/internal/eventstore/handler/v2"
 	query2 "github.com/zitadel/zitadel/internal/query"
 	"github.com/zitadel/zitadel/internal/repository/instance"
+	"github.com/zitadel/zitadel/internal/repository/oidcsession"
 	"github.com/zitadel/zitadel/internal/repository/org"
 	"github.com/zitadel/zitadel/internal/repository/user"
 	view_model "github.com/zitadel/zitadel/internal/user/repository/view/model"
@@ -53,6 +56,15 @@ func (*UserSession) Name() string {
 // Reducers implements [handler.Projection]
 func (s *UserSession) Reducers() []handler.AggregateReducer {
 	return []handler.AggregateReducer{
+		{
+			Aggregate: oidcsession.AggregateType,
+			EventReducers: []handler.EventReducer{
+				{
+					Event:  oidcsession.AddedType,
+					Reduce: s.Reduce,
+				},
+			},
+		},
 		{
 			Aggregate: user.AggregateType,
 			EventReducers: []handler.EventReducer{
@@ -203,7 +215,8 @@ func (u *UserSession) Reduce(event eventstore.Event) (_ *handler.Statement, err 
 		user.HumanU2FTokenCheckFailedType,
 		user.HumanPasswordlessTokenCheckSucceededType,
 		user.HumanPasswordlessTokenCheckFailedType,
-		user.HumanSignedOutType:
+		user.HumanSignedOutType,
+		oidcsession.AddedType:
 		return handler.NewStatement(event, func(ex handler.Executer, projectionName string) error {
 			var session *view_model.UserSessionView
 			eventData, err := view_model.UserSessionFromEvent(event)
@@ -222,6 +235,10 @@ func (u *UserSession) Reduce(event eventstore.Event) (_ *handler.Statement, err 
 					UserID:        event.Aggregate().ID,
 					State:         int32(domain.UserSessionStateActive),
 					InstanceID:    event.Aggregate().InstanceID,
+				}
+				if strings.HasPrefix(session.UserID, command.IDPrefixV2) {
+					session.UserID = eventData.UserID
+					session.PasswordVerification = time.Now()
 				}
 			}
 			return u.updateSession(session, event)

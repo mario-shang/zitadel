@@ -23,6 +23,7 @@ type AddedEvent struct {
 
 	UserID      string                      `json:"userID"`
 	SessionID   string                      `json:"sessionID"`
+	UserAgentID string                      `json:"userAgentID"`
 	ClientID    string                      `json:"clientID"`
 	Audience    []string                    `json:"audience"`
 	Scope       []string                    `json:"scope"`
@@ -46,6 +47,7 @@ func NewAddedEvent(ctx context.Context,
 	aggregate *eventstore.Aggregate,
 	userID,
 	sessionID,
+	userAgentID,
 	clientID string,
 	audience,
 	scope []string,
@@ -60,6 +62,7 @@ func NewAddedEvent(ctx context.Context,
 		),
 		UserID:      userID,
 		SessionID:   sessionID,
+		UserAgentID: userAgentID,
 		ClientID:    clientID,
 		Audience:    audience,
 		Scope:       scope,

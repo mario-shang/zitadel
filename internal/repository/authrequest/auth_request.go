@@ -23,6 +23,7 @@ type AddedEvent struct {
 	eventstore.BaseEvent `json:"-"`
 
 	LoginClient   string                    `json:"login_client"`
+	UserAgentID   string                    `json:"user_agent_id"`
 	ClientID      string                    `json:"client_id"`
 	RedirectURI   string                    `json:"redirect_uri"`
 	State         string                    `json:"state,omitempty"`
@@ -49,6 +50,7 @@ func (e *AddedEvent) UniqueConstraints() []*eventstore.UniqueConstraint {
 func NewAddedEvent(ctx context.Context,
 	aggregate *eventstore.Aggregate,
 	loginClient,
+	userAgentID,
 	clientID,
 	redirectURI,
 	state,
@@ -70,6 +72,7 @@ func NewAddedEvent(ctx context.Context,
 			AddedType,
 		),
 		LoginClient:   loginClient,
+		UserAgentID:   userAgentID,
 		ClientID:      clientID,
 		RedirectURI:   redirectURI,
 		State:         state,

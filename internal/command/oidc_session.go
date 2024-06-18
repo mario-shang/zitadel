@@ -30,12 +30,12 @@ const (
 
 // AddOIDCSessionAccessToken creates a new OIDC Session, creates an access token and returns its id and expiration.
 // If the underlying [AuthRequest] is a OIDC Auth Code Flow, it will set the code as exchanged.
-func (c *Commands) AddOIDCSessionAccessToken(ctx context.Context, authRequestID string) (string, time.Time, error) {
+func (c *Commands) AddOIDCSessionAccessToken(ctx context.Context, authRequestID string, userAgentID string) (string, time.Time, error) {
 	cmd, err := c.newOIDCSessionAddEvents(ctx, authRequestID)
 	if err != nil {
 		return "", time.Time{}, err
 	}
-	cmd.AddSession(ctx)
+	cmd.AddSession(ctx, userAgentID)
 	if err = cmd.AddAccessToken(ctx, cmd.authRequestWriteModel.Scope, domain.TokenReasonAuthRequest, nil); err != nil {
 		return "", time.Time{}, err
 	}
@@ -47,12 +47,12 @@ func (c *Commands) AddOIDCSessionAccessToken(ctx context.Context, authRequestID 
 // AddOIDCSessionRefreshAndAccessToken creates a new OIDC Session, creates an access token and refresh token.
 // It returns the access token id, expiration and the refresh token.
 // If the underlying [AuthRequest] is a OIDC Auth Code Flow, it will set the code as exchanged.
-func (c *Commands) AddOIDCSessionRefreshAndAccessToken(ctx context.Context, authRequestID string) (tokenID, refreshToken string, tokenExpiration time.Time, err error) {
+func (c *Commands) AddOIDCSessionRefreshAndAccessToken(ctx context.Context, authRequestID string, userAgentID string) (tokenID, refreshToken string, tokenExpiration time.Time, err error) {
 	cmd, err := c.newOIDCSessionAddEvents(ctx, authRequestID)
 	if err != nil {
 		return "", "", time.Time{}, err
 	}
-	cmd.AddSession(ctx)
+	cmd.AddSession(ctx, userAgentID)
 	if err = cmd.AddAccessToken(ctx, cmd.authRequestWriteModel.Scope, domain.TokenReasonAuthRequest, nil); err != nil {
 		return "", "", time.Time{}, err
 	}
@@ -273,12 +273,13 @@ type OIDCSessionEvents struct {
 	refreshToken string
 }
 
-func (c *OIDCSessionEvents) AddSession(ctx context.Context) {
+func (c *OIDCSessionEvents) AddSession(ctx context.Context, userAgentID string) {
 	c.events = append(c.events, oidcsession.NewAddedEvent(
 		ctx,
 		c.oidcSessionWriteModel.aggregate,
 		c.sessionWriteModel.UserID,
 		c.sessionWriteModel.AggregateID,
+		userAgentID,
 		c.authRequestWriteModel.ClientID,
 		c.authRequestWriteModel.Audience,
 		c.authRequestWriteModel.Scope,

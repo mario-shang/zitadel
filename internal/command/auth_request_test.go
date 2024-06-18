@@ -46,6 +46,7 @@ func TestCommands_AddAuthRequest(t *testing.T) {
 						eventFromEventPusher(
 							authrequest.NewAddedEvent(mockCtx, &authrequest.NewAggregate("V2_id", "instanceID").Aggregate,
 								"loginClient",
+								"userAgentID",
 								"clientID",
 								"redirectURI",
 								"state",
@@ -80,6 +81,7 @@ func TestCommands_AddAuthRequest(t *testing.T) {
 					expectPush(
 						authrequest.NewAddedEvent(mockCtx, &authrequest.NewAggregate("V2_id", "instanceID").Aggregate,
 							"loginClient",
+							"userAgentID",
 							"clientID",
 							"redirectURI",
 							"state",
@@ -210,6 +212,7 @@ func TestCommands_LinkSessionToAuthRequest(t *testing.T) {
 						eventFromEventPusher(
 							authrequest.NewAddedEvent(mockCtx, &authrequest.NewAggregate("id", "instanceID").Aggregate,
 								"loginClient",
+								"userAgentID",
 								"clientID",
 								"redirectURI",
 								"state",
@@ -250,6 +253,7 @@ func TestCommands_LinkSessionToAuthRequest(t *testing.T) {
 						eventFromEventPusher(
 							authrequest.NewAddedEvent(mockCtx, &authrequest.NewAggregate("id", "instanceID").Aggregate,
 								"loginClient",
+								"userAgentID",
 								"clientID",
 								"redirectURI",
 								"state",
@@ -288,6 +292,7 @@ func TestCommands_LinkSessionToAuthRequest(t *testing.T) {
 						eventFromEventPusher(
 							authrequest.NewAddedEvent(mockCtx, &authrequest.NewAggregate("V2_id", "instanceID").Aggregate,
 								"loginClient",
+								"userAgentID",
 								"clientID",
 								"redirectURI",
 								"state",
@@ -325,6 +330,7 @@ func TestCommands_LinkSessionToAuthRequest(t *testing.T) {
 						eventFromEventPusher(
 							authrequest.NewAddedEvent(mockCtx, &authrequest.NewAggregate("V2_id", "instanceID").Aggregate,
 								"loginClient",
+								"userAgentID",
 								"clientID",
 								"redirectURI",
 								"state",
@@ -385,6 +391,7 @@ func TestCommands_LinkSessionToAuthRequest(t *testing.T) {
 						eventFromEventPusher(
 							authrequest.NewAddedEvent(mockCtx, &authrequest.NewAggregate("V2_id", "instanceID").Aggregate,
 								"loginClient",
+								"userAgentID",
 								"clientID",
 								"redirectURI",
 								"state",
@@ -434,6 +441,7 @@ func TestCommands_LinkSessionToAuthRequest(t *testing.T) {
 						eventFromEventPusher(
 							authrequest.NewAddedEvent(mockCtx, &authrequest.NewAggregate("V2_id", "instanceID").Aggregate,
 								"loginClient",
+								"userAgentID",
 								"clientID",
 								"redirectURI",
 								"state",
@@ -519,6 +527,7 @@ func TestCommands_LinkSessionToAuthRequest(t *testing.T) {
 						eventFromEventPusher(
 							authrequest.NewAddedEvent(mockCtx, &authrequest.NewAggregate("V2_id", "instanceID").Aggregate,
 								"loginClient",
+								"userAgentID",
 								"clientID",
 								"redirectURI",
 								"state",
@@ -661,6 +670,7 @@ func TestCommands_FailAuthRequest(t *testing.T) {
 						eventFromEventPusher(
 							authrequest.NewAddedEvent(mockCtx, &authrequest.NewAggregate("V2_id", "instanceID").Aggregate,
 								"loginClient",
+								"userAgentID",
 								"clientID",
 								"redirectURI",
 								"state",
@@ -755,6 +765,7 @@ func TestCommands_AddAuthRequestCode(t *testing.T) {
 						eventFromEventPusher(
 							authrequest.NewAddedEvent(mockCtx, &authrequest.NewAggregate("V2_authRequestID", "instanceID").Aggregate,
 								"loginClient",
+								"userAgentID",
 								"clientID",
 								"redirectURI",
 								"state",
@@ -791,6 +802,7 @@ func TestCommands_AddAuthRequestCode(t *testing.T) {
 						eventFromEventPusher(
 							authrequest.NewAddedEvent(mockCtx, &authrequest.NewAggregate("V2_authRequestID", "instanceID").Aggregate,
 								"loginClient",
+								"userAgentID",
 								"clientID",
 								"redirectURI",
 								"state",
@@ -882,6 +894,7 @@ func TestCommands_ExchangeAuthCode(t *testing.T) {
 						eventFromEventPusher(
 							authrequest.NewAddedEvent(mockCtx, &authrequest.NewAggregate("V2_authRequestID", "instanceID").Aggregate,
 								"loginClient",
+								"userAgentID",
 								"clientID",
 								"redirectURI",
 								"state",
@@ -919,6 +932,7 @@ func TestCommands_ExchangeAuthCode(t *testing.T) {
 						eventFromEventPusher(
 							authrequest.NewAddedEvent(mockCtx, &authrequest.NewAggregate("V2_authRequestID", "instanceID").Aggregate,
 								"loginClient",
+								"userAgentID",
 								"clientID",
 								"redirectURI",
 								"state",

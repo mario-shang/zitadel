@@ -59,12 +59,17 @@ func (o *OPStorage) createAuthRequestScopeAndAudience(ctx context.Context, clien
 }
 
 func (o *OPStorage) createAuthRequestLoginClient(ctx context.Context, req *oidc.AuthRequest, hintUserID, loginClient string) (op.AuthRequest, error) {
+	userAgentID, ok := middleware.UserAgentIDFromCtx(ctx)
+	if !ok {
+		return nil, zerrors.ThrowPreconditionFailed(nil, "OIDC-sd436", "no user agent id")
+	}
 	scope, audience, err := o.createAuthRequestScopeAndAudience(ctx, req.ClientID, req.Scopes)
 	if err != nil {
 		return nil, err
 	}
 	authRequest := &command.AuthRequest{
 		LoginClient:   loginClient,
+		UserAgentID:   userAgentID,
 		ClientID:      req.ClientID,
 		RedirectURI:   req.RedirectURI,
 		State:         req.State,
@@ -218,7 +223,7 @@ func (o *OPStorage) CreateAccessToken(ctx context.Context, req op.TokenRequest) 
 	}()
 	if authReq, ok := req.(*AuthRequestV2); ok {
 		activity.Trigger(ctx, "", authReq.CurrentAuthRequest.UserID, activity.OIDCAccessToken, o.eventstore.FilterToQueryReducer)
-		return o.command.AddOIDCSessionAccessToken(setContextUserSystem(ctx), authReq.GetID())
+		return o.command.AddOIDCSessionAccessToken(setContextUserSystem(ctx), authReq.GetID(), authReq.UserAgentID)
 	}
 
 	userAgentID, applicationID, userOrgID, authTime, amr, reason, actor := getInfoFromRequest(req)
@@ -249,7 +254,7 @@ func (o *OPStorage) CreateAccessAndRefreshTokens(ctx context.Context, req op.Tok
 	case *AuthRequestV2:
 		// trigger activity log for authentication for user
 		activity.Trigger(ctx, "", tokenReq.GetSubject(), activity.OIDCRefreshToken, o.eventstore.FilterToQueryReducer)
-		return o.command.AddOIDCSessionRefreshAndAccessToken(setContextUserSystem(ctx), tokenReq.GetID())
+		return o.command.AddOIDCSessionRefreshAndAccessToken(setContextUserSystem(ctx), tokenReq.GetID(), tokenReq.UserAgentID)
 	case *RefreshTokenRequestV2:
 		// trigger activity log for authentication for user
 		activity.Trigger(ctx, "", tokenReq.GetSubject(), activity.OIDCRefreshToken, o.eventstore.FilterToQueryReducer)

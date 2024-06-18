@@ -14,6 +14,7 @@ import (
 type AuthRequest struct {
 	ID            string
 	LoginClient   string
+	UserAgentID   string
 	ClientID      string
 	RedirectURI   string
 	State         string
@@ -56,6 +57,7 @@ func (c *Commands) AddAuthRequest(ctx context.Context, authRequest *AuthRequest)
 		ctx,
 		&authrequest.NewAggregate(authRequest.ID, authz.GetInstance(ctx).InstanceID()).Aggregate,
 		authRequest.LoginClient,
+		authRequest.UserAgentID,
 		authRequest.ClientID,
 		authRequest.RedirectURI,
 		authRequest.State,
@@ -171,6 +173,7 @@ func authRequestWriteModelToCurrentAuthRequest(writeModel *AuthRequestWriteModel
 	return &CurrentAuthRequest{
 		AuthRequest: &AuthRequest{
 			ID:            writeModel.AggregateID,
+			UserAgentID:   writeModel.UserAgentID,
 			LoginClient:   writeModel.LoginClient,
 			ClientID:      writeModel.ClientID,
 			RedirectURI:   writeModel.RedirectURI,
