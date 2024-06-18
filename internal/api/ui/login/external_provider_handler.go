@@ -55,6 +55,8 @@ type externalIDPCallbackData struct {
 
 	// Apple returns a user on first registration
 	User string `schema:"user"`
+
+	Redirect string `schema:"redirect"`
 }
 
 type externalNotFoundOptionFormData struct {
@@ -240,11 +242,15 @@ func (l *Login) handleExternalLoginCallback(w http.ResponseWriter, r *http.Reque
 	}
 
 	userAgentID, _ := http_mw.UserAgentIDFromCtx(r.Context())
-	if data.RelayState != "" {
-		relayStateUrl, err := url.Parse(data.RelayState)
-		if err == nil && relayStateUrl.Scheme != "" {
+	redirect := data.Redirect
+	if redirect == "" && data.RelayState != "" {
+		redirect = data.RelayState
+	}
+	if redirect != "" {
+		redirectUrl, err := url.Parse(redirect)
+		if err == nil && redirectUrl.Scheme != "" {
 			// create temp request
-			values, err := url.ParseQuery(relayStateUrl.RawQuery)
+			values, err := url.ParseQuery(redirectUrl.RawQuery)
 			IDPID := values.Get("idp_id")
 			AppId := values.Get("app_id")
 			if IDPID == "" || AppId == "" {
