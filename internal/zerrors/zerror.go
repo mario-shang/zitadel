@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+
+	"github.com/crewjam/saml"
 )
 
 var _ Error = (*ZitadelError)(nil)
@@ -28,6 +30,9 @@ func CreateZitadelError(parent error, id, message string) *ZitadelError {
 
 func (err *ZitadelError) Error() string {
 	if err.Parent != nil {
+		if p, ok := err.Parent.(*saml.InvalidResponseError); ok && p.PrivateErr != nil {
+			return fmt.Sprintf("ID=%s Message=%s Parent=(%v)", err.ID, err.Message, p.PrivateErr)
+		}
 		return fmt.Sprintf("ID=%s Message=%s Parent=(%v)", err.ID, err.Message, err.Parent)
 	}
 	return fmt.Sprintf("ID=%s Message=%s", err.ID, err.Message)
