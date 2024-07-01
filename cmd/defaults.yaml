@@ -753,15 +753,15 @@ DefaultInstance:
   MessageTexts:
     - MessageTextType: InitCode
       Language: de
-      Title: Zitadel - User initialisieren
+      Title: Webportal - User initialisieren
       PreHeader: User initialisieren
       Subject: User initialisieren
       Greeting: Hallo {{.DisplayName}},
-      Text: Dieser Benutzer wurde soeben im Zitadel erstellt. Mit dem Benutzernamen &lt;br&gt;&lt;strong&gt;{{.PreferredLoginName}}&lt;/strong&gt;&lt;br&gt; kannst du dich anmelden. Nutze den untenstehenden Button, um die Initialisierung abzuschliessen &lt;br&gt;(Code &lt;strong&gt;{{.Code}}&lt;/strong&gt;).&lt;br&gt; Falls du dieses Mail nicht angefordert hast, kannst du es einfach ignorieren.
+      Text: Dieser Benutzer wurde soeben im Webportal erstellt. Mit dem Benutzernamen &lt;br&gt;&lt;strong&gt;{{.PreferredLoginName}}&lt;/strong&gt;&lt;br&gt; kannst du dich anmelden. Nutze den untenstehenden Button, um die Initialisierung abzuschliessen &lt;br&gt;(Code &lt;strong&gt;{{.Code}}&lt;/strong&gt;).&lt;br&gt; Falls du dieses Mail nicht angefordert hast, kannst du es einfach ignorieren.
       ButtonText: Initialisierung abschliessen
     - MessageTextType: PasswordReset
       Language: de
-      Title: Zitadel - Passwort zurücksetzen
+      Title: Webportal - Passwort zurücksetzen
       PreHeader: Passwort zurücksetzen
       Subject: Passwort zurücksetzen
       Greeting: Hallo {{.DisplayName}},
@@ -769,7 +769,7 @@ DefaultInstance:
       ButtonText: Passwort zurücksetzen
     - MessageTextType: VerifyEmail
       Language: de
-      Title: Zitadel - Email verifizieren
+      Title: Webportal - Email verifizieren
       PreHeader: Email verifizieren
       Subject: Email verifizieren
       Greeting: Hallo {{.DisplayName}},
@@ -777,7 +777,7 @@ DefaultInstance:
       ButtonText: Email verifizieren
     - MessageTextType: VerifyPhone
       Language: de
-      Title: Zitadel - Telefonnummer verifizieren
+      Title: Webportal - Telefonnummer verifizieren
       PreHeader: Telefonnummer verifizieren
       Subject: Telefonnummer verifizieren
       Greeting: Hallo {{.DisplayName}},
@@ -785,7 +785,7 @@ DefaultInstance:
       ButtonText: Telefon verifizieren
     - MessageTextType: DomainClaimed
       Language: de
-      Title: Zitadel - Domain wurde beansprucht
+      Title: Webportal - Domain wurde beansprucht
       PreHeader: Email / Username ändern
       Subject: Domain wurde beansprucht
       Greeting: Hallo {{.DisplayName}},
@@ -793,7 +793,7 @@ DefaultInstance:
       ButtonText: Login
     - MessageTextType: PasswordChange
       Language: de
-      Title: ZITADEL - Passwort von Benutzer wurde geändert
+      Title: Webportal - Passwort von Benutzer wurde geändert
       PreHeader: Passwort Änderung
       Subject: Passwort von Benutzer wurde geändert
       Greeting: Hallo {{.DisplayName}},
@@ -801,15 +801,15 @@ DefaultInstance:
       ButtonText: Login
     - MessageTextType: InitCode
       Language: en
-      Title: Zitadel - Initialize User
+      Title: Webportal - Initialize User
       PreHeader: Initialize User
       Subject: Initialize User
       Greeting: Hello {{.DisplayName}},
-      Text: This user was created in Zitadel. Use the username {{.PreferredLoginName}} to login. Please click the button below to finish the initialization process. (Code {{.Code}}) If you didn't ask for this mail, please ignore it.
+      Text: This user was created in Webportal. Use the username {{.PreferredLoginName}} to login. Please click the button below to finish the initialization process. (Code {{.Code}}) If you didn't ask for this mail, please ignore it.
       ButtonText: Finish initialization
     - MessageTextType: PasswordReset
       Language: en
-      Title: Zitadel - Reset password
+      Title: Webportal - Reset password
       PreHeader: Reset password
       Subject: Reset password
       Greeting: Hello {{.DisplayName}},
@@ -817,7 +817,7 @@ DefaultInstance:
       ButtonText: Reset password
     - MessageTextType: VerifyEmail
       Language: en
-      Title: Zitadel - Verify email
+      Title: Webportal - Verify email
       PreHeader: Verify email
       Subject: Verify email
       Greeting: Hello {{.DisplayName}},
@@ -825,7 +825,7 @@ DefaultInstance:
       ButtonText: Verify email
     - MessageTextType: VerifyPhone
       Language: en
-      Title: Zitadel - Verify phone
+      Title: Webportal - Verify phone
       PreHeader: Verify phone
       Subject: Verify phone
       Greeting: Hello {{.DisplayName}},
@@ -833,7 +833,7 @@ DefaultInstance:
       ButtonText: Verify phone
     - MessageTextType: DomainClaimed
       Language: en
-      Title: Zitadel - Domain has been claimed
+      Title: Webportal - Domain has been claimed
       PreHeader: Change email/username
       Subject: Domain has been claimed
       Greeting: Hello {{.DisplayName}},
@@ -841,7 +841,7 @@ DefaultInstance:
       ButtonText: Login
     - MessageTextType: PasswordChange
       Language: en
-      Title: ZITADEL - Password of user has changed
+      Title: Webportal - Password of user has changed
       PreHeader: Change password
       Subject: Password of user has changed
       Greeting: Hello {{.DisplayName}},

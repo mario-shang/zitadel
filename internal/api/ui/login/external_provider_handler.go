@@ -274,7 +274,7 @@ func (l *Login) handleExternalLoginCallback(w http.ResponseWriter, r *http.Reque
 				RequestedOrgID:      identityProvider.ResourceOwner,
 				SAMLRequestID:       "dumb",
 				TransferState:       "state",
-				CallbackURI:         data.RelayState,
+				CallbackURI:         redirect,
 				Prompt:              []domain.Prompt{domain.PromptNone},
 				InstanceID:          authz.GetInstance(ctx).InstanceID(),
 				Request: &domain.AuthRequestOIDC{
