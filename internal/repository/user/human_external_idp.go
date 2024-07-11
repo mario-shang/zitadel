@@ -175,6 +175,7 @@ func UserIDPLinkCascadeRemovedEventMapper(event eventstore.Event) (eventstore.Ev
 type UserIDPCheckSucceededEvent struct {
 	eventstore.BaseEvent `json:"-"`
 	*AuthRequestInfo
+	ExternalUserID string `json:"externalUserID,omitempty"`
 }
 
 func (e *UserIDPCheckSucceededEvent) Payload() interface{} {
@@ -188,7 +189,8 @@ func (e *UserIDPCheckSucceededEvent) UniqueConstraints() []*eventstore.UniqueCon
 func NewUserIDPCheckSucceededEvent(
 	ctx context.Context,
 	aggregate *eventstore.Aggregate,
-	info *AuthRequestInfo) *UserIDPCheckSucceededEvent {
+	info *AuthRequestInfo,
+	externalUserID string) *UserIDPCheckSucceededEvent {
 	return &UserIDPCheckSucceededEvent{
 		BaseEvent: *eventstore.NewBaseEventForPush(
 			ctx,
@@ -196,6 +198,7 @@ func NewUserIDPCheckSucceededEvent(
 			UserIDPLoginCheckSucceededType,
 		),
 		AuthRequestInfo: info,
+		ExternalUserID:  externalUserID,
 	}
 }
 

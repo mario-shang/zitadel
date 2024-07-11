@@ -127,6 +127,7 @@ func scanUserSessions(rows *sql.Rows) ([]*model.UserSessionView, error) {
 			&displayName,
 			&avatarKey,
 			&session.SelectedIDPConfigID,
+			&session.ExternalUserID,
 			&session.PasswordVerification,
 			&session.PasswordlessVerification,
 			&session.ExternalLoginVerification,

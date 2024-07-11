@@ -3,6 +3,7 @@ package oidc
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"strings"
 	"time"
 
@@ -339,6 +340,11 @@ func (o *OPStorage) TokenRequestByRefreshToken(ctx context.Context, refreshToken
 }
 
 func (o *OPStorage) TerminateSession(ctx context.Context, userID, clientID string) (err error) {
+	_, err = o.TerminateSessionWithRedirect(ctx, userID, clientID)
+	return
+}
+
+func (o *OPStorage) TerminateSessionWithRedirect(ctx context.Context, userID, clientID string) (redirect string, err error) {
 	ctx, span := tracing.NewSpan(ctx)
 	defer func() {
 		err = oidcError(err)
@@ -347,22 +353,32 @@ func (o *OPStorage) TerminateSession(ctx context.Context, userID, clientID strin
 	userAgentID, ok := middleware.UserAgentIDFromCtx(ctx)
 	if !ok {
 		logging.Error("no user agent id")
-		return zerrors.ThrowPreconditionFailed(nil, "OIDC-fso7F", "no user agent id")
+		err = zerrors.ThrowPreconditionFailed(nil, "OIDC-fso7F", "no user agent id")
+		return
 	}
-	userIDs, err := o.repo.UserSessionUserIDsByAgentID(ctx, userAgentID)
+	userSessions, err := o.repo.UserSessionsByAgentID(ctx, userAgentID)
 	if err != nil {
 		logging.WithError(err).Error("error retrieving user sessions")
-		return err
+		return
 	}
-	if len(userIDs) == 0 {
-		return nil
+	if len(userSessions) == 0 {
+		return
+	}
+	userIDs := make([]string, 0, len(userSessions))
+	for _, session := range userSessions {
+		if session.State == int32(domain.UserSessionStateActive) {
+			userIDs = append(userIDs, session.UserID)
+			if session.SelectedIDPConfigID != "" && session.ExternalUserID != "" {
+				redirect = fmt.Sprintf("/idps/%s/logout?User=%s&RelayState=", session.SelectedIDPConfigID, session.ExternalUserID)
+			}
+		}
 	}
 	data := authz.CtxData{
 		UserID: userID,
 	}
 	err = o.command.HumansSignOut(authz.SetCtxData(ctx, data), userAgentID, userIDs)
 	logging.OnError(err).Error("error signing out")
-	return err
+	return
 }
 
 func (o *OPStorage) TerminateSessionFromRequest(ctx context.Context, endSessionRequest *op.EndSessionRequest) (redirectURI string, err error) {
@@ -376,7 +392,12 @@ func (o *OPStorage) TerminateSessionFromRequest(ctx context.Context, endSessionR
 	// and if not provided, terminate the session using the V1 method
 	headers, _ := http_utils.HeadersFromCtx(ctx)
 	if loginClient := headers.Get(LoginClientHeader); loginClient == "" {
-		return endSessionRequest.RedirectURI, o.TerminateSession(ctx, endSessionRequest.UserID, endSessionRequest.ClientID)
+		var redirect string
+		redirect, err = o.TerminateSessionWithRedirect(ctx, endSessionRequest.UserID, endSessionRequest.ClientID)
+		if err != nil {
+			return
+		}
+		return redirect + endSessionRequest.RedirectURI, nil
 	}
 
 	// in case there are not id_token_hint, redirect to the UI and let it decide which session to terminate

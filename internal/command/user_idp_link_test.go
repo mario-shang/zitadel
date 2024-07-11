@@ -793,6 +793,7 @@ func TestCommandSide_ExternalLoginCheck(t *testing.T) {
 								UserAgentID:         "useragent1",
 								SelectedIDPConfigID: "config1",
 							},
+							"",
 						),
 					),
 				),
@@ -815,7 +816,7 @@ func TestCommandSide_ExternalLoginCheck(t *testing.T) {
 			r := &Commands{
 				eventstore: tt.fields.eventstore,
 			}
-			err := r.UserIDPLoginChecked(tt.args.ctx, tt.args.orgID, tt.args.userID, tt.args.authRequest)
+			err := r.UserIDPLoginChecked(tt.args.ctx, tt.args.orgID, tt.args.userID, tt.args.authRequest, "")
 			if tt.res.err == nil {
 				assert.NoError(t, err)
 			}

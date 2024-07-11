@@ -37,6 +37,7 @@ type UserSessionView struct {
 	LoginName                    string    `json:"-" gorm:"-"`
 	DisplayName                  string    `json:"-" gorm:"-"`
 	AvatarKey                    string    `json:"-" gorm:"-"`
+	ExternalUserID               string    `json:"externalUserID" gorm:"column:external_user_id"`
 	SelectedIDPConfigID          string    `json:"selectedIDPConfigID" gorm:"column:selected_idp_config_id"`
 	PasswordVerification         time.Time `json:"-" gorm:"column:password_verification"`
 	PasswordlessVerification     time.Time `json:"-" gorm:"column:passwordless_verification"`
@@ -106,6 +107,7 @@ func (v *UserSessionView) AppendEvent(event eventstore.Event) error {
 		}
 		v.ExternalLoginVerification = event.CreatedAt()
 		v.SelectedIDPConfigID = data.SelectedIDPConfigID
+		v.ExternalUserID = data.ExternalUserID
 		v.State = int32(domain.UserSessionStateActive)
 	case user.HumanPasswordlessTokenCheckSucceededType:
 		v.PasswordlessVerification = event.CreatedAt()

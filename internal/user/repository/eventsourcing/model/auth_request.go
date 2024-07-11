@@ -13,6 +13,7 @@ type AuthRequest struct {
 	ID                  string `json:"id,omitempty"`
 	UserAgentID         string `json:"userAgentID,omitempty"`
 	SelectedIDPConfigID string `json:"selectedIDPConfigID,omitempty"`
+	ExternalUserID      string `json:"externalUserID,omitempty"`
 	*BrowserInfo
 }
 

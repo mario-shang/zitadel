@@ -8,14 +8,18 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 
 	"github.com/crewjam/saml"
 	"github.com/gorilla/mux"
 	"github.com/zitadel/logging"
+	"github.com/zitadel/oidc/v3/pkg/client/rp"
 
 	"github.com/zitadel/zitadel/internal/api/authz"
 	http_utils "github.com/zitadel/zitadel/internal/api/http"
+	"github.com/zitadel/zitadel/internal/api/http/middleware"
 	"github.com/zitadel/zitadel/internal/api/ui/login"
+	"github.com/zitadel/zitadel/internal/auth/repository"
 	"github.com/zitadel/zitadel/internal/command"
 	"github.com/zitadel/zitadel/internal/crypto"
 	"github.com/zitadel/zitadel/internal/form"
@@ -42,6 +46,8 @@ const (
 	callbackPath    = "/callback"
 	metadataPath    = idpPrefix + "/saml/metadata"
 	acsPath         = idpPrefix + "/saml/acs"
+	sloPath         = idpPrefix + "/saml/slo"
+	logoutPath      = idpPrefix + "/logout"
 	certificatePath = idpPrefix + "/saml/certificate"
 
 	paramIntentID         = "id"
@@ -55,6 +61,7 @@ const (
 type Handler struct {
 	commands            *command.Commands
 	queries             *query.Queries
+	repo                repository.Repository
 	parser              *form.Parser
 	encryptionAlgorithm crypto.EncryptionAlgorithm
 	callbackURL         func(ctx context.Context) string
@@ -76,6 +83,7 @@ type externalSAMLIDPCallbackData struct {
 	IDPID      string
 	Response   string
 	RelayState string
+	User       string
 }
 
 // CallbackURL generates the instance specific URL to the IDP callback handler
@@ -100,6 +108,7 @@ func LoginSAMLRootURL(externalSecure bool) func(ctx context.Context) string {
 func NewHandler(
 	commands *command.Commands,
 	queries *query.Queries,
+	repo repository.Repository,
 	encryptionAlgorithm crypto.EncryptionAlgorithm,
 	externalSecure bool,
 	instanceInterceptor func(next http.Handler) http.Handler,
@@ -107,6 +116,7 @@ func NewHandler(
 	h := &Handler{
 		commands:            commands,
 		queries:             queries,
+		repo:                repo,
 		parser:              form.NewParser(),
 		encryptionAlgorithm: encryptionAlgorithm,
 		callbackURL:         CallbackURL(externalSecure),
@@ -120,6 +130,8 @@ func NewHandler(
 	router.HandleFunc(metadataPath, h.handleMetadata)
 	router.HandleFunc(certificatePath, h.handleCertificate)
 	router.HandleFunc(acsPath, h.handleACS)
+	router.HandleFunc(sloPath, h.handleSLO)
+	router.HandleFunc(logoutPath, h.handleRedirectLogout)
 	return router
 }
 
@@ -129,6 +141,7 @@ func parseSAMLRequest(r *http.Request) *externalSAMLIDPCallbackData {
 		IDPID:      vars[varIDPID],
 		Response:   r.FormValue("SAMLResponse"),
 		RelayState: r.FormValue("RelayState"),
+		User:       r.FormValue("User"),
 	}
 }
 
@@ -268,6 +281,102 @@ func (h *Handler) handleACS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	redirectToSuccessURL(w, r, intent, token, userID)
+}
+
+func (h *Handler) handleSLO(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	data := parseSAMLRequest(r)
+
+	provider, err := h.getProvider(ctx, data.IDPID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	samlProvider, ok := provider.(*saml2.Provider)
+	if !ok {
+		err := zerrors.ThrowInvalidArgument(nil, "SAML-ui9wyux0hp", "Errors.Intent.IDPInvalid")
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	sp, err := samlProvider.GetSP()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	err = sp.ServiceProvider.ValidateLogoutResponseRequest(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	userAgentID, ok := middleware.UserAgentIDFromCtx(ctx)
+	if !ok {
+		http.Redirect(w, r, data.RelayState, http.StatusFound)
+		return
+	}
+	userIDs, err := h.repo.UserSessionUserIDsByAgentID(ctx, userAgentID)
+	if err != nil {
+		logging.WithError(err).Error("error retrieving user sessions")
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if len(userIDs) > 0 {
+		data := authz.CtxData{
+			UserID: userIDs[0],
+		}
+		err = h.commands.HumansSignOut(authz.SetCtxData(ctx, data), userAgentID, userIDs)
+		if err != nil {
+			logging.WithError(err).Error("error terminate user sessions")
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+	http.Redirect(w, r, data.RelayState, http.StatusFound)
+}
+
+func (h *Handler) handleRedirectLogout(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	data := parseSAMLRequest(r)
+	if data.User == "" {
+		err := zerrors.ThrowInvalidArgument(nil, "IDP-mario001", "Errors.Intent.EmptyUser")
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if data.RelayState == "" {
+		err := zerrors.ThrowInvalidArgument(nil, "IDP-mario002", "Errors.Intent.EmptyRelayState")
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	redirect, err := url.Parse(data.RelayState)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	provider, err := h.getProvider(ctx, data.IDPID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	switch p := provider.(type) {
+	case *saml2.Provider:
+		sp, err := p.GetSP()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		redirect, err = sp.ServiceProvider.MakeRedirectLogoutRequest(data.User, data.RelayState)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	case rp.RelyingParty:
+		redirect, err = url.Parse(fmt.Sprintf("%s?post_logout_redirect_uri=%s", p.GetEndSessionEndpoint(), url.QueryEscape(data.RelayState)))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+
+	http.Redirect(w, r, redirect.String(), http.StatusFound)
 }
 
 func (h *Handler) handleCallback(w http.ResponseWriter, r *http.Request) {

@@ -130,7 +130,7 @@ func (c *Commands) removeUserIDPLink(ctx context.Context, link *domain.UserIDPLi
 	return user.NewUserIDPLinkRemovedEvent(ctx, userAgg, link.IDPConfigID, link.ExternalUserID), existingLink, nil
 }
 
-func (c *Commands) UserIDPLoginChecked(ctx context.Context, orgID, userID string, authRequest *domain.AuthRequest) (err error) {
+func (c *Commands) UserIDPLoginChecked(ctx context.Context, orgID, userID string, authRequest *domain.AuthRequest, externalUserID string) (err error) {
 	if userID == "" {
 		return zerrors.ThrowInvalidArgument(nil, "COMMAND-5n8sM", "Errors.IDMissing")
 	}
@@ -144,7 +144,7 @@ func (c *Commands) UserIDPLoginChecked(ctx context.Context, orgID, userID string
 	}
 
 	userAgg := UserAggregateFromWriteModel(&existingHuman.WriteModel)
-	_, err = c.eventstore.Push(ctx, user.NewUserIDPCheckSucceededEvent(ctx, userAgg, authRequestDomainToAuthRequestInfo(authRequest)))
+	_, err = c.eventstore.Push(ctx, user.NewUserIDPCheckSucceededEvent(ctx, userAgg, authRequestDomainToAuthRequestInfo(authRequest), externalUserID))
 	return err
 }
 

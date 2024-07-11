@@ -11,6 +11,7 @@ import (
 	"github.com/zitadel/zitadel/internal/eventstore"
 	"github.com/zitadel/zitadel/internal/query"
 	usr_view "github.com/zitadel/zitadel/internal/user/repository/view"
+	"github.com/zitadel/zitadel/internal/user/repository/view/model"
 )
 
 type UserRepo struct {
@@ -23,6 +24,10 @@ type UserRepo struct {
 
 func (repo *UserRepo) Health(ctx context.Context) error {
 	return repo.Eventstore.Health(ctx)
+}
+
+func (repo *UserRepo) UserSessionsByAgentID(ctx context.Context, agentID string) ([]*model.UserSessionView, error) {
+	return repo.View.UserSessionsByAgentID(agentID, authz.GetInstance(ctx).InstanceID())
 }
 
 func (repo *UserRepo) UserSessionUserIDsByAgentID(ctx context.Context, agentID string) ([]string, error) {

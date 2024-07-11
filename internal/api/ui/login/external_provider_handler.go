@@ -773,7 +773,7 @@ func (l *Login) registerExternalUser(w http.ResponseWriter, r *http.Request, aut
 		l.renderExternalNotFoundOption(w, r, authReq, orgIamPolicy, nil, nil, err)
 		return
 	}
-	err = l.authRepo.AutoRegisterExternalUser(setContext(r.Context(), resourceOwner), user, externalIDP, nil, authReq.ID, authReq.AgentID, resourceOwner, metadata, domain.BrowserInfoFromRequest(r))
+	err = l.authRepo.AutoRegisterExternalUser(setContext(r.Context(), resourceOwner), user, externalUser.ExternalUserID, externalIDP, nil, authReq.ID, authReq.AgentID, resourceOwner, metadata, domain.BrowserInfoFromRequest(r))
 	if err != nil {
 		l.renderExternalNotFoundOption(w, r, authReq, orgIamPolicy, user, externalIDP, err)
 		return
