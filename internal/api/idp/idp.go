@@ -289,27 +289,36 @@ func (h *Handler) handleSLO(w http.ResponseWriter, r *http.Request) {
 
 	provider, err := h.getProvider(ctx, data.IDPID)
 	if err != nil {
+		logging.WithError(err).Error("error idp doesn't exists " + data.IDPID)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	samlProvider, ok := provider.(*saml2.Provider)
 	if !ok {
 		err := zerrors.ThrowInvalidArgument(nil, "SAML-ui9wyux0hp", "Errors.Intent.IDPInvalid")
+		logging.WithError(err).Error("provider is not saml")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	sp, err := samlProvider.GetSP()
 	if err != nil {
+		logging.WithError(err).Error("error get saml provider")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	err = sp.ServiceProvider.ValidateLogoutResponseRequest(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		if e, ok := err.(*saml.InvalidResponseError); ok &&
+			e.PrivateErr.Error() != "signature element not present" {
+			logging.WithError(err).Error("error validate logout response")
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		err = nil
 	}
 	userAgentID, ok := middleware.UserAgentIDFromCtx(ctx)
 	if !ok {
+		logging.Error("error get empty user agent")
 		http.Redirect(w, r, data.RelayState, http.StatusFound)
 		return
 	}
@@ -338,21 +347,25 @@ func (h *Handler) handleRedirectLogout(w http.ResponseWriter, r *http.Request) {
 	data := parseSAMLRequest(r)
 	if data.User == "" {
 		err := zerrors.ThrowInvalidArgument(nil, "IDP-mario001", "Errors.Intent.EmptyUser")
+		logging.WithError(err).Error("bad redirect logout request")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	if data.RelayState == "" {
 		err := zerrors.ThrowInvalidArgument(nil, "IDP-mario002", "Errors.Intent.EmptyRelayState")
+		logging.WithError(err).Error("bad redirect logout request")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	redirect, err := url.Parse(data.RelayState)
 	if err != nil {
+		logging.WithError(err).Error("bad redirect logout request")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	provider, err := h.getProvider(ctx, data.IDPID)
 	if err != nil {
+		logging.WithError(err).Error("error get idp " + data.IDPID)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -360,17 +373,20 @@ func (h *Handler) handleRedirectLogout(w http.ResponseWriter, r *http.Request) {
 	case *saml2.Provider:
 		sp, err := p.GetSP()
 		if err != nil {
+			logging.WithError(err).Error("error get saml provider")
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		redirect, err = sp.ServiceProvider.MakeRedirectLogoutRequest(data.User, data.RelayState)
 		if err != nil {
+			logging.WithError(err).Error("error make redirect logout request")
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 	case rp.RelyingParty:
 		redirect, err = url.Parse(fmt.Sprintf("%s?post_logout_redirect_uri=%s", p.GetEndSessionEndpoint(), url.QueryEscape(data.RelayState)))
 		if err != nil {
+			logging.WithError(err).Error("error parse relaying party redirect url")
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}

@@ -204,3 +204,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	nhooyr.io/websocket v1.8.11 // indirect
 )
+
+replace github.com/crewjam/saml v0.4.14 => github.com/arjen-ag5/saml v0.0.0-20240327221030-d2a799737e8d
