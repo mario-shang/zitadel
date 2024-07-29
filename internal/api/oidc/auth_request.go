@@ -397,7 +397,11 @@ func (o *OPStorage) TerminateSessionFromRequest(ctx context.Context, endSessionR
 		if err != nil {
 			return
 		}
-		return redirect + endSessionRequest.RedirectURI, nil
+		if headers.Get("Sec-Fetch-Dest") != "iframe" {
+			return redirect + endSessionRequest.RedirectURI, nil
+		} else {
+			return endSessionRequest.RedirectURI, nil
+		}
 	}
 
 	// in case there are not id_token_hint, redirect to the UI and let it decide which session to terminate
