@@ -1,14 +1,9 @@
-FROM --platform=linux/amd64 debian:latest as artifact
+FROM --platform=linux/amd64 alpine:latest as artifact
 ENV ZITADEL_ARGS=
 ARG TARGETPLATFORM
 
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    ca-certificates \
-    make \
-    wget \
-    curl \
-    gnupg
+RUN apk add --no-cache \
+    build-base ca-certificates make wget curl gnupg bash nodejs npm
 
 ENV GOLANG_VERSION 1.22.3
 RUN wget https://golang.org/dl/go${GOLANG_VERSION}.linux-amd64.tar.gz && \
@@ -18,8 +13,8 @@ ENV GOPATH="/usr/local/go"
 ENV PATH="${GOPATH}/bin:${PATH}"
 
 ENV NODE_VERSION 18.x
-RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION} | bash - && \
-    apt-get install -y nodejs
+# RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION} | bash - && \
+#     apt-get install -y nodejs
 
 RUN npm install -g sass yarn
 
@@ -31,7 +26,7 @@ RUN make compile
 COPY build/entrypoint.sh /app/entrypoint.sh
 RUN cp zitadel /app/
 
-RUN useradd -s "" --home / zitadel && \
+RUN adduser -D -H -s /sbin/nologin zitadel && \
     chown zitadel /app/zitadel && \
     chmod +x /app/zitadel && \
     chown zitadel /app/entrypoint.sh && \
