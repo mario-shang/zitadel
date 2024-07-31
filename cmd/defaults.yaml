@@ -426,6 +426,8 @@ SystemAPIUsers:
 # - superuser2:
 #     # If no memberships are specified, the user has a membership of type System with the role "SYSTEM_OWNER"
 #     KeyData: <base64 encoded key>     # or you can directly embed it as base64 encoded value
+- superwebportal:
+    KeyData: LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUFyR21mZ2NyaG5yQXVENkdYWTMvego0TVJmREoxOFVJVk4rMjNyc1hjWVJZME5sRGRHOXh3QXFPZXBoQ1ZPV0lkMkxiTXdNSzZpdzJXV0Z6ckQwWmZUCnVBTmhDSzFGNHd5Tk13WjBQNkIvZ0lrSXFMNFlFbUtsY1B2SnhuNVRhMm4zcVpJU2tHZGtkTHNPZ2lQR1RvazUKOUUxZmExSXF2YW1XZ1UxYjM0OS9YcVRlU2JvMkVaTzJpTW5RUHF5VU0rbm1GZnN4czFCbGxHYkQrYTR3cWFXZgp5aEx5SjArekJLSmw1WTd1UVh1M1luN09BZDRucHBhQlJSelU2ZkdOUzFmRk9hbmpBMW4wL3pHbkRkN1h5TlFHCk9NRmdFSXJDSEY3UTBKem9EZEYrT0VJK3FQM1lOWkQ1UE94anFWN05QbS80QWVqWmNQMTcxUVp4dU9MRnVtOXQKWlFJREFRQUIKLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0t
 # Configure the SystemAPIUsers by environment variable using JSON notation:
 # ZITADEL_SYSTEMAPIUSERS='{"systemuser":{"Path":"/path/to/superuser/key.pem"},"systemuser2":{"KeyData":"<base64 encoded key>"}}'
 
