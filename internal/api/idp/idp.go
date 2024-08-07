@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/crewjam/saml"
 	"github.com/gorilla/mux"
@@ -369,6 +370,7 @@ func (h *Handler) handleRedirectLogout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	var endSessionUrl string
 	switch p := provider.(type) {
 	case *saml2.Provider:
 		sp, err := p.GetSP()
@@ -383,8 +385,16 @@ func (h *Handler) handleRedirectLogout(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+	case *azuread.Provider:
+		// Entra Id has OIDC endpoint
+		authUrl := p.Provider.RelyingParty.OAuthConfig().Endpoint.AuthURL
+		endSessionUrl = strings.Replace(authUrl, "authorize", "logout", 1)
 	case rp.RelyingParty:
-		redirect, err = url.Parse(fmt.Sprintf("%s?post_logout_redirect_uri=%s", p.GetEndSessionEndpoint(), url.QueryEscape(data.RelayState)))
+		endSessionUrl = p.GetEndSessionEndpoint()
+	}
+	if endSessionUrl != "" {
+		redirect, err = url.Parse(fmt.Sprintf("%s?post_logout_redirect_uri=%s",
+			endSessionUrl, url.QueryEscape(data.RelayState)))
 		if err != nil {
 			logging.WithError(err).Error("error parse relaying party redirect url")
 			http.Error(w, err.Error(), http.StatusBadRequest)
