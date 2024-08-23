@@ -114,4 +114,6 @@ func init() {
 	eventstore.RegisterFilterEventMapper(AggregateType, NotificationPolicyAddedEventType, NotificationPolicyAddedEventMapper)
 	eventstore.RegisterFilterEventMapper(AggregateType, NotificationPolicyChangedEventType, NotificationPolicyChangedEventMapper)
 	eventstore.RegisterFilterEventMapper(AggregateType, NotificationPolicyRemovedEventType, NotificationPolicyRemovedEventMapper)
+	eventstore.RegisterFilterEventMapper(AggregateType, OIDCSettingsAddedEventType, OIDCSettingsAddedEventMapper)
+	eventstore.RegisterFilterEventMapper(AggregateType, OIDCSettingsChangedEventType, OIDCSettingsChangedEventMapper)
 }

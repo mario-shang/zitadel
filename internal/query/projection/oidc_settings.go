@@ -7,6 +7,7 @@ import (
 	old_handler "github.com/zitadel/zitadel/internal/eventstore/handler"
 	"github.com/zitadel/zitadel/internal/eventstore/handler/v2"
 	"github.com/zitadel/zitadel/internal/repository/instance"
+	"github.com/zitadel/zitadel/internal/repository/org"
 	"github.com/zitadel/zitadel/internal/zerrors"
 )
 
@@ -57,6 +58,19 @@ func (*oidcSettingsProjection) Init() *old_handler.Check {
 func (p *oidcSettingsProjection) Reducers() []handler.AggregateReducer {
 	return []handler.AggregateReducer{
 		{
+			Aggregate: org.AggregateType,
+			EventReducers: []handler.EventReducer{
+				{
+					Event:  org.OIDCSettingsAddedEventType,
+					Reduce: p.reduceOIDCSettingsAdded,
+				},
+				{
+					Event:  org.OIDCSettingsChangedEventType,
+					Reduce: p.reduceOIDCSettingsChanged,
+				},
+			},
+		},
+		{
 			Aggregate: instance.AggregateType,
 			EventReducers: []handler.EventReducer{
 				{
@@ -77,56 +91,99 @@ func (p *oidcSettingsProjection) Reducers() []handler.AggregateReducer {
 }
 
 func (p *oidcSettingsProjection) reduceOIDCSettingsAdded(event eventstore.Event) (*handler.Statement, error) {
-	e, ok := event.(*instance.OIDCSettingsAddedEvent)
-	if !ok {
-		return nil, zerrors.ThrowInvalidArgumentf(nil, "HANDL-f9nwf", "reduce.wrong.event.type %s", instance.OIDCSettingsAddedEventType)
+	switch e := event.(type) {
+	case *instance.OIDCSettingsAddedEvent:
+		return handler.NewCreateStatement(
+			e,
+			[]handler.Column{
+				handler.NewCol(OIDCSettingsColumnAggregateID, e.Aggregate().ID),
+				handler.NewCol(OIDCSettingsColumnCreationDate, e.CreationDate()),
+				handler.NewCol(OIDCSettingsColumnChangeDate, e.CreationDate()),
+				handler.NewCol(OIDCSettingsColumnResourceOwner, e.Aggregate().ResourceOwner),
+				handler.NewCol(OIDCSettingsColumnInstanceID, e.Aggregate().InstanceID),
+				handler.NewCol(OIDCSettingsColumnSequence, e.Sequence()),
+				handler.NewCol(OIDCSettingsColumnAccessTokenLifetime, e.AccessTokenLifetime),
+				handler.NewCol(OIDCSettingsColumnIdTokenLifetime, e.IdTokenLifetime),
+				handler.NewCol(OIDCSettingsColumnRefreshTokenIdleExpiration, e.RefreshTokenIdleExpiration),
+				handler.NewCol(OIDCSettingsColumnRefreshTokenExpiration, e.RefreshTokenExpiration),
+			},
+		), nil
+	case *org.OIDCSettingsAddedEvent:
+		return handler.NewCreateStatement(
+			e,
+			[]handler.Column{
+				handler.NewCol(OIDCSettingsColumnAggregateID, e.Aggregate().ID),
+				handler.NewCol(OIDCSettingsColumnCreationDate, e.CreationDate()),
+				handler.NewCol(OIDCSettingsColumnChangeDate, e.CreationDate()),
+				handler.NewCol(OIDCSettingsColumnResourceOwner, e.Aggregate().ResourceOwner),
+				handler.NewCol(OIDCSettingsColumnInstanceID, e.Aggregate().InstanceID),
+				handler.NewCol(OIDCSettingsColumnSequence, e.Sequence()),
+				handler.NewCol(OIDCSettingsColumnAccessTokenLifetime, e.AccessTokenLifetime),
+				handler.NewCol(OIDCSettingsColumnIdTokenLifetime, e.IdTokenLifetime),
+				handler.NewCol(OIDCSettingsColumnRefreshTokenIdleExpiration, e.RefreshTokenIdleExpiration),
+				handler.NewCol(OIDCSettingsColumnRefreshTokenExpiration, e.RefreshTokenExpiration),
+			},
+		), nil
+	default:
+		return nil, zerrors.ThrowInvalidArgumentf(nil, "HANDL-f9nwf", "reduce.wrong.event.type %s or %s", instance.OIDCSettingsAddedEventType, org.OIDCSettingsAddedEventType)
 	}
-	return handler.NewCreateStatement(
-		e,
-		[]handler.Column{
-			handler.NewCol(OIDCSettingsColumnAggregateID, e.Aggregate().ID),
-			handler.NewCol(OIDCSettingsColumnCreationDate, e.CreationDate()),
-			handler.NewCol(OIDCSettingsColumnChangeDate, e.CreationDate()),
-			handler.NewCol(OIDCSettingsColumnResourceOwner, e.Aggregate().ResourceOwner),
-			handler.NewCol(OIDCSettingsColumnInstanceID, e.Aggregate().InstanceID),
-			handler.NewCol(OIDCSettingsColumnSequence, e.Sequence()),
-			handler.NewCol(OIDCSettingsColumnAccessTokenLifetime, e.AccessTokenLifetime),
-			handler.NewCol(OIDCSettingsColumnIdTokenLifetime, e.IdTokenLifetime),
-			handler.NewCol(OIDCSettingsColumnRefreshTokenIdleExpiration, e.RefreshTokenIdleExpiration),
-			handler.NewCol(OIDCSettingsColumnRefreshTokenExpiration, e.RefreshTokenExpiration),
-		},
-	), nil
 }
 
 func (p *oidcSettingsProjection) reduceOIDCSettingsChanged(event eventstore.Event) (*handler.Statement, error) {
-	e, ok := event.(*instance.OIDCSettingsChangedEvent)
-	if !ok {
-		return nil, zerrors.ThrowInvalidArgumentf(nil, "HANDL-8JJ2d", "reduce.wrong.event.type %s", instance.OIDCSettingsChangedEventType)
+	switch e := event.(type) {
+	case *org.OIDCSettingsChangedEvent:
+		columns := make([]handler.Column, 0, 6)
+		columns = append(columns,
+			handler.NewCol(OIDCSettingsColumnChangeDate, e.CreationDate()),
+			handler.NewCol(OIDCSettingsColumnSequence, e.Sequence()),
+		)
+		if e.AccessTokenLifetime != nil {
+			columns = append(columns, handler.NewCol(OIDCSettingsColumnAccessTokenLifetime, *e.AccessTokenLifetime))
+		}
+		if e.IdTokenLifetime != nil {
+			columns = append(columns, handler.NewCol(OIDCSettingsColumnIdTokenLifetime, *e.IdTokenLifetime))
+		}
+		if e.RefreshTokenIdleExpiration != nil {
+			columns = append(columns, handler.NewCol(OIDCSettingsColumnRefreshTokenIdleExpiration, *e.RefreshTokenIdleExpiration))
+		}
+		if e.RefreshTokenExpiration != nil {
+			columns = append(columns, handler.NewCol(OIDCSettingsColumnRefreshTokenExpiration, *e.RefreshTokenExpiration))
+		}
+		return handler.NewUpdateStatement(
+			e,
+			columns,
+			[]handler.Condition{
+				handler.NewCond(OIDCSettingsColumnAggregateID, e.Aggregate().ID),
+				handler.NewCond(OIDCSettingsColumnInstanceID, e.Aggregate().InstanceID),
+			},
+		), nil
+	case *instance.OIDCSettingsChangedEvent:
+		columns := make([]handler.Column, 0, 6)
+		columns = append(columns,
+			handler.NewCol(OIDCSettingsColumnChangeDate, e.CreationDate()),
+			handler.NewCol(OIDCSettingsColumnSequence, e.Sequence()),
+		)
+		if e.AccessTokenLifetime != nil {
+			columns = append(columns, handler.NewCol(OIDCSettingsColumnAccessTokenLifetime, *e.AccessTokenLifetime))
+		}
+		if e.IdTokenLifetime != nil {
+			columns = append(columns, handler.NewCol(OIDCSettingsColumnIdTokenLifetime, *e.IdTokenLifetime))
+		}
+		if e.RefreshTokenIdleExpiration != nil {
+			columns = append(columns, handler.NewCol(OIDCSettingsColumnRefreshTokenIdleExpiration, *e.RefreshTokenIdleExpiration))
+		}
+		if e.RefreshTokenExpiration != nil {
+			columns = append(columns, handler.NewCol(OIDCSettingsColumnRefreshTokenExpiration, *e.RefreshTokenExpiration))
+		}
+		return handler.NewUpdateStatement(
+			e,
+			columns,
+			[]handler.Condition{
+				handler.NewCond(OIDCSettingsColumnAggregateID, e.Aggregate().ID),
+				handler.NewCond(OIDCSettingsColumnInstanceID, e.Aggregate().InstanceID),
+			},
+		), nil
+	default:
+		return nil, zerrors.ThrowInvalidArgumentf(nil, "HANDL-8JJ2d", "reduce.wrong.event.type %s or %s", instance.OIDCSettingsChangedEventType, org.OIDCSettingsChangedEventType)
 	}
-
-	columns := make([]handler.Column, 0, 6)
-	columns = append(columns,
-		handler.NewCol(OIDCSettingsColumnChangeDate, e.CreationDate()),
-		handler.NewCol(OIDCSettingsColumnSequence, e.Sequence()),
-	)
-	if e.AccessTokenLifetime != nil {
-		columns = append(columns, handler.NewCol(OIDCSettingsColumnAccessTokenLifetime, *e.AccessTokenLifetime))
-	}
-	if e.IdTokenLifetime != nil {
-		columns = append(columns, handler.NewCol(OIDCSettingsColumnIdTokenLifetime, *e.IdTokenLifetime))
-	}
-	if e.RefreshTokenIdleExpiration != nil {
-		columns = append(columns, handler.NewCol(OIDCSettingsColumnRefreshTokenIdleExpiration, *e.RefreshTokenIdleExpiration))
-	}
-	if e.RefreshTokenExpiration != nil {
-		columns = append(columns, handler.NewCol(OIDCSettingsColumnRefreshTokenExpiration, *e.RefreshTokenExpiration))
-	}
-	return handler.NewUpdateStatement(
-		e,
-		columns,
-		[]handler.Condition{
-			handler.NewCond(OIDCSettingsColumnAggregateID, e.Aggregate().ID),
-			handler.NewCond(OIDCSettingsColumnInstanceID, e.Aggregate().InstanceID),
-		},
-	), nil
 }

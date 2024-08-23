@@ -166,7 +166,7 @@ func (c *Commands) newOIDCSessionAddEvents(ctx context.Context, authRequestID st
 	if err != nil {
 		return nil, err
 	}
-	accessTokenLifetime, refreshTokenLifeTime, refreshTokenIdleLifetime, err := c.tokenTokenLifetimes(ctx)
+	accessTokenLifetime, refreshTokenLifeTime, refreshTokenIdleLifetime, err := c.tokenTokenLifetimes(ctx, resourceOwner)
 	if err != nil {
 		return nil, err
 	}
@@ -239,7 +239,7 @@ func (c *Commands) newOIDCSessionUpdateEvents(ctx context.Context, oidcSessionID
 	if err = sessionWriteModel.CheckRefreshToken(refreshTokenID); err != nil {
 		return nil, err
 	}
-	accessTokenLifetime, refreshTokenLifeTime, refreshTokenIdleLifetime, err := c.tokenTokenLifetimes(ctx)
+	accessTokenLifetime, refreshTokenLifeTime, refreshTokenIdleLifetime, err := c.tokenTokenLifetimes(ctx, sessionWriteModel.ResourceOwner)
 	if err != nil {
 		return nil, err
 	}
@@ -349,23 +349,46 @@ func (c *OIDCSessionEvents) PushEvents(ctx context.Context) (accessTokenID strin
 	return c.oidcSessionWriteModel.AggregateID + TokenDelimiter + c.accessTokenID, c.refreshToken, c.oidcSessionWriteModel.AccessTokenExpiration, nil
 }
 
-func (c *Commands) tokenTokenLifetimes(ctx context.Context) (accessTokenLifetime time.Duration, refreshTokenLifetime time.Duration, refreshTokenIdleLifetime time.Duration, err error) {
-	oidcSettings := NewInstanceOIDCSettingsWriteModel(ctx)
-	err = c.eventstore.FilterToQueryReducer(ctx, oidcSettings)
-	if err != nil {
-		return 0, 0, 0, err
-	}
+func (c *Commands) tokenTokenLifetimes(ctx context.Context, resourceOwner string) (accessTokenLifetime time.Duration, refreshTokenLifetime time.Duration, refreshTokenIdleLifetime time.Duration, err error) {
 	accessTokenLifetime = c.defaultAccessTokenLifetime
 	refreshTokenLifetime = c.defaultRefreshTokenLifetime
 	refreshTokenIdleLifetime = c.defaultRefreshTokenIdleLifetime
-	if oidcSettings.AccessTokenLifetime > 0 {
-		accessTokenLifetime = oidcSettings.AccessTokenLifetime
+
+	usingOrgOIDCSetting := false
+	if resourceOwner != "" {
+		orgOIDCSettings := NewOrgOIDCSettingsWriteModel(resourceOwner)
+		err = c.eventstore.FilterToQueryReducer(ctx, orgOIDCSettings)
+		if err == nil {
+			if orgOIDCSettings.AccessTokenLifetime > 0 {
+				usingOrgOIDCSetting = true
+				accessTokenLifetime = orgOIDCSettings.AccessTokenLifetime
+			}
+			if orgOIDCSettings.RefreshTokenExpiration > 0 {
+				usingOrgOIDCSetting = true
+				refreshTokenLifetime = orgOIDCSettings.RefreshTokenExpiration
+			}
+			if orgOIDCSettings.RefreshTokenIdleExpiration > 0 {
+				usingOrgOIDCSetting = true
+				refreshTokenIdleLifetime = orgOIDCSettings.RefreshTokenIdleExpiration
+			}
+		}
 	}
-	if oidcSettings.RefreshTokenExpiration > 0 {
-		refreshTokenLifetime = oidcSettings.RefreshTokenExpiration
+	if !usingOrgOIDCSetting {
+		oidcSettings := NewInstanceOIDCSettingsWriteModel(ctx)
+		err = c.eventstore.FilterToQueryReducer(ctx, oidcSettings)
+		if err != nil {
+			return 0, 0, 0, err
+		}
+		if oidcSettings.AccessTokenLifetime > 0 {
+			accessTokenLifetime = oidcSettings.AccessTokenLifetime
+		}
+		if oidcSettings.RefreshTokenExpiration > 0 {
+			refreshTokenLifetime = oidcSettings.RefreshTokenExpiration
+		}
+		if oidcSettings.RefreshTokenIdleExpiration > 0 {
+			refreshTokenIdleLifetime = oidcSettings.RefreshTokenIdleExpiration
+		}
 	}
-	if oidcSettings.RefreshTokenIdleExpiration > 0 {
-		refreshTokenIdleLifetime = oidcSettings.RefreshTokenIdleExpiration
-	}
+
 	return accessTokenLifetime, refreshTokenLifetime, refreshTokenIdleLifetime, nil
 }
