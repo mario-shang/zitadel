@@ -2,21 +2,30 @@ package admin
 
 import (
 	"context"
+	"strings"
 
 	"github.com/zitadel/zitadel/internal/api/authz"
 	grpc_util "github.com/zitadel/zitadel/internal/api/grpc"
 	"github.com/zitadel/zitadel/internal/api/grpc/object"
 	"github.com/zitadel/zitadel/internal/api/http"
 	"github.com/zitadel/zitadel/internal/domain"
+	"github.com/zitadel/zitadel/internal/query"
 	admin_pb "github.com/zitadel/zitadel/pkg/grpc/admin"
 )
 
 func (s *Server) GetOIDCSettings(ctx context.Context, _ *admin_pb.GetOIDCSettingsRequest) (*admin_pb.GetOIDCSettingsResponse, error) {
-	aggID := grpc_util.GetHeader(ctx, http.ZitadelOrgID)
-	if aggID == "" {
-		aggID = authz.GetInstance(ctx).InstanceID()
+	var err error
+	var result *query.OIDCSettings
+	if orgID := grpc_util.GetHeader(ctx, http.ZitadelOrgID); orgID != "" {
+		result, err = s.query.OIDCSettingsByAggID(ctx, orgID)
+		if strings.Contains(err.Error(), "QUERY-s9nlw") {
+			// ignore NotFound error
+			err = nil
+		}
 	}
-	result, err := s.query.OIDCSettingsByAggID(ctx, aggID)
+	if result == nil {
+		result, err = s.query.OIDCSettingsByAggID(ctx, authz.GetInstance(ctx).InstanceID())
+	}
 	if err != nil {
 		return nil, err
 	}
