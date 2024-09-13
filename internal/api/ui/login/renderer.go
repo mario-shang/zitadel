@@ -337,6 +337,10 @@ func (l *Login) chooseNextStep(w http.ResponseWriter, r *http.Request, authReq *
 }
 
 func (l *Login) renderInternalError(w http.ResponseWriter, r *http.Request, authReq *domain.AuthRequest, err error) {
+	l.renderErrorWithDetails(w, r, authReq, err, "Internal", "")
+}
+
+func (l *Login) renderErrorWithDetails(w http.ResponseWriter, r *http.Request, authReq *domain.AuthRequest, err error, errType, errBackUrl string) {
 	var msg string
 	if err != nil {
 		log := logging.WithError(err)
@@ -348,7 +352,8 @@ func (l *Login) renderInternalError(w http.ResponseWriter, r *http.Request, auth
 		_, msg = l.getErrorMessage(r, err)
 	}
 	translator := l.getTranslator(r.Context(), authReq)
-	data := l.getBaseData(r, authReq, translator, "Errors.Internal", "", "Internal", msg)
+	data := l.getBaseData(r, authReq, translator, "Errors.Internal", "", errType, msg)
+	data.errorData.ErrBackUrl = errBackUrl
 	l.renderer.RenderTemplate(w, r, translator, l.renderer.Templates[tmplError], data, nil)
 }
 
@@ -659,6 +664,7 @@ type baseData struct {
 type errorData struct {
 	ErrID      string
 	ErrMessage string
+	ErrBackUrl string
 }
 
 type userData struct {

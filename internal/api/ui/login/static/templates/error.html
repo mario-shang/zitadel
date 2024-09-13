@@ -1,12 +1,22 @@
 {{template "main-top" .}}
 
-<div class="lgn-head">
+<form method="POST">
+  <div class="lgn-head">
     <div class="lgn-error">
         <i class="lgn-icon-exclamation-circle-solid lgn-warn"></i>
         <p class="lgn-error-message">
             {{ .ErrMessage }}{{ if .ErrID }} ({{ .ErrID }}){{end}}
         </p>
     </div>
-</div>
+  </div>
+  {{ if .ErrBackUrl }}
+  <div class="lgn-actions">
+    <a class="lgn-icon-button lgn-left-action" href="{{ .ErrBackUrl }}">
+        <i class="lgn-icon-arrow-left-solid"></i>
+    </a>
+    <span class="fill-space"></span>
+  </div>
+  {{ end }}
+</form>
 
 {{template "main-bottom" .}}

@@ -3,6 +3,7 @@ package login
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -797,7 +798,8 @@ func (l *Login) registerExternalUser(w http.ResponseWriter, r *http.Request, aut
 		user, metadata, err = l.runPreCreationActions(authReq, r, user, metadata, resourceOwner, domain.FlowTypeExternalAuthentication)
 		if err != nil {
 			if caosErr := new(zerrors.ZitadelError); !errors.As(err, &caosErr) {
-				l.renderError(w, r, authReq, err)
+				backUrl := fmt.Sprintf("/idps/%s/logout?User=%s&RelayState=%s", externalIDP.IDPConfigID, externalIDP.ExternalUserID, http_utils.BuildOrigin(r.Host, r.TLS != nil))
+				l.renderErrorWithDetails(w, r, authReq, err, "", backUrl)
 				return
 			}
 			l.renderExternalNotFoundOption(w, r, authReq, orgIamPolicy, nil, nil, err)
