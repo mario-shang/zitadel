@@ -559,6 +559,31 @@ func (l *Login) checkAutoLinking(w http.ResponseWriter, r *http.Request, authReq
 	return true
 }
 
+func (l *Login) checkExistsUser(w http.ResponseWriter, r *http.Request, authReq *domain.AuthRequest, externalUser *domain.ExternalUser) bool {
+	queries := make([]query.SearchQuery, 0, 2)
+	emailQuery, err := query.NewUserVerifiedEmailSearchQuery(string(externalUser.Email))
+	if err != nil {
+		return false
+	}
+	queries = append(queries, emailQuery)
+	// restrict the possible organization if needed (for email and usernames)
+	if authReq.RequestedOrgID != "" {
+		resourceOwnerQuery, err := query.NewUserResourceOwnerSearchQuery(authReq.RequestedOrgID, query.TextEquals)
+		if err != nil {
+			return false
+		}
+		queries = append(queries, resourceOwnerQuery)
+	}
+	user, err := l.query.GetNotifyUser(r.Context(), false, queries...)
+	if err != nil {
+		return false
+	}
+	if user != nil {
+		return true
+	}
+	return false
+}
+
 // externalUserNotExisting is called if an externalAuthentication couldn't find a corresponding externalID
 // possible solutions are:
 //
@@ -768,14 +793,16 @@ func (l *Login) registerExternalUser(w http.ResponseWriter, r *http.Request, aut
 	}
 	user, externalIDP, metadata := mapExternalUserToLoginUser(externalUser, orgIamPolicy.UserLoginMustBeDomain)
 
-	user, metadata, err = l.runPreCreationActions(authReq, r, user, metadata, resourceOwner, domain.FlowTypeExternalAuthentication)
-	if err != nil {
-		if caosErr := new(zerrors.ZitadelError); !errors.As(err, &caosErr) {
-			l.renderError(w, r, authReq, err)
+	if !l.checkExistsUser(w, r, authReq, externalUser) {
+		user, metadata, err = l.runPreCreationActions(authReq, r, user, metadata, resourceOwner, domain.FlowTypeExternalAuthentication)
+		if err != nil {
+			if caosErr := new(zerrors.ZitadelError); !errors.As(err, &caosErr) {
+				l.renderError(w, r, authReq, err)
+				return
+			}
+			l.renderExternalNotFoundOption(w, r, authReq, orgIamPolicy, nil, nil, err)
 			return
 		}
-		l.renderExternalNotFoundOption(w, r, authReq, orgIamPolicy, nil, nil, err)
-		return
 	}
 	err = l.authRepo.AutoRegisterExternalUser(setContext(r.Context(), resourceOwner), user, externalUser.ExternalUserID, externalIDP, nil, authReq.ID, authReq.AgentID, resourceOwner, metadata, domain.BrowserInfoFromRequest(r))
 	if err != nil {
