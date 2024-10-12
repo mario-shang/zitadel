@@ -560,29 +560,26 @@ func (l *Login) checkAutoLinking(w http.ResponseWriter, r *http.Request, authReq
 	return true
 }
 
-func (l *Login) checkExistsUser(w http.ResponseWriter, r *http.Request, authReq *domain.AuthRequest, externalUser *domain.ExternalUser) bool {
+func (l *Login) checkExistsUser(w http.ResponseWriter, r *http.Request, authReq *domain.AuthRequest, externalUser *domain.ExternalUser) (user *query.NotifyUser) {
 	queries := make([]query.SearchQuery, 0, 2)
 	emailQuery, err := query.NewUserVerifiedEmailSearchQuery(string(externalUser.Email))
 	if err != nil {
-		return false
+		return
 	}
 	queries = append(queries, emailQuery)
 	// restrict the possible organization if needed (for email and usernames)
 	if authReq.RequestedOrgID != "" {
 		resourceOwnerQuery, err := query.NewUserResourceOwnerSearchQuery(authReq.RequestedOrgID, query.TextEquals)
 		if err != nil {
-			return false
+			return
 		}
 		queries = append(queries, resourceOwnerQuery)
 	}
-	user, err := l.query.GetNotifyUser(r.Context(), false, queries...)
+	user, err = l.query.GetNotifyUser(r.Context(), false, queries...)
 	if err != nil {
-		return false
+		return
 	}
-	if user != nil {
-		return true
-	}
-	return false
+	return
 }
 
 // externalUserNotExisting is called if an externalAuthentication couldn't find a corresponding externalID
@@ -793,18 +790,21 @@ func (l *Login) registerExternalUser(w http.ResponseWriter, r *http.Request, aut
 		return
 	}
 	user, externalIDP, metadata := mapExternalUserToLoginUser(externalUser, orgIamPolicy.UserLoginMustBeDomain)
-
-	if !l.checkExistsUser(w, r, authReq, externalUser) {
-		user, metadata, err = l.runPreCreationActions(authReq, r, user, metadata, resourceOwner, domain.FlowTypeExternalAuthentication)
-		if err != nil {
-			if caosErr := new(zerrors.ZitadelError); !errors.As(err, &caosErr) {
-				backUrl := fmt.Sprintf("/idps/%s/logout?User=%s&RelayState=%s", externalIDP.IDPConfigID, externalIDP.ExternalUserID, http_utils.BuildOrigin(r.Host, r.TLS != nil))
+	orgMetadata, _ := l.query.SearchOrgMetadata(r.Context(), true, resourceOwner, &query.OrgMetadataSearchQueries{}, false)
+	for _, m := range orgMetadata.Metadata {
+		if m.Key == "webportal-newUserBlocked" && string(m.Value) == "true" {
+			backUrl := fmt.Sprintf("/idps/%s/logout?User=%s&RelayState=%s", externalIDP.IDPConfigID, externalIDP.ExternalUserID, http_utils.BuildOrigin(r.Host, r.TLS != nil))
+			err = l.blockNewUser(w, r, authReq, externalUser, externalIDP)
+			if err != nil {
 				l.renderErrorWithDetails(w, r, authReq, err, "", backUrl)
 				return
 			}
-			l.renderExternalNotFoundOption(w, r, authReq, orgIamPolicy, nil, nil, err)
-			return
 		}
+	}
+	user, metadata, err = l.runPreCreationActions(authReq, r, user, metadata, resourceOwner, domain.FlowTypeExternalAuthentication)
+	if err != nil {
+		l.renderExternalNotFoundOption(w, r, authReq, orgIamPolicy, nil, nil, err)
+		return
 	}
 	err = l.authRepo.AutoRegisterExternalUser(setContext(r.Context(), resourceOwner), user, externalUser.ExternalUserID, externalIDP, nil, authReq.ID, authReq.AgentID, resourceOwner, metadata, domain.BrowserInfoFromRequest(r))
 	if err != nil {
@@ -828,6 +828,16 @@ func (l *Login) registerExternalUser(w http.ResponseWriter, r *http.Request, aut
 		return
 	}
 	l.renderNextStep(w, r, authReq)
+}
+
+func (l *Login) blockNewUser(w http.ResponseWriter, r *http.Request, authReq *domain.AuthRequest, externalUser *domain.ExternalUser, externalIDP *domain.UserIDPLink) (err error) {
+	existsUser := l.checkExistsUser(w, r, authReq, externalUser)
+	if existsUser == nil {
+		err = errors.New("New user registration is not allowed. Please reach out to Support for assistance.")
+	} else {
+		_, err = l.command.RemoveUser(r.Context(), existsUser.ID, existsUser.ResourceOwner, nil)
+	}
+	return
 }
 
 // updateExternalUser will update the existing user (email, phone, profile) with data provided by the IDP

@@ -7,7 +7,6 @@ import (
 	"html/template"
 	"net/http"
 	"path"
-	"regexp"
 	"strings"
 	"time"
 
@@ -485,13 +484,7 @@ func (l *Login) getErrorMessage(r *http.Request, err error) (errID, errMsg strin
 		localized := l.renderer.LocalizeFromRequest(l.getTranslator(r.Context(), nil), r, caosErr.Message, nil)
 		return caosErr.ID, localized
 	}
-	errMsg = err.Error()
-	re := regexp.MustCompile(`^Error:\s*(.*?)\s*\sat\s\w+\s\(<eval>.*\)?$`)
-	matches := re.FindStringSubmatch(errMsg)
-	if len(matches) > 1 {
-		errMsg = matches[1]
-	}
-	return
+	return "", err.Error()
 }
 
 func (l *Login) getTheme(r *http.Request) string {
